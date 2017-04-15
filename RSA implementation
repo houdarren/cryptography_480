@@ -1,3 +1,6 @@
+# RSA Implementation DONE
+
+
 import math
 import sys
 import random 
@@ -10,100 +13,50 @@ def calcN(p,q):
 def calcPhi(p,q):
    return (p-1)*(q-1)
 
-def createPubPrivKeys(phi):
+def choose_e(phi, lst):
+    eNow = random.choice(lst)
+    while gcd(eNow,phi) != 1:
+        eNow = random.choice(lst)
+    return eNow
+        
+def createPubKeys(phi):
     """
     This function will generate/return the public and private keys
     """
-    lst = list(range(2,phi))
+    lst = list(range(3,phi))
     e = choose_e(phi,lst) # (e,n) public key
-    d = multInverse(e, phi)
-    #print [e,d]
-    return [e,d]
-
-def choose_e(phi, lst):
+    return e
     
-    eNow = random.choice(lst)
-    if gcd(eNow,phi) != 1:
-                choose_e(phi,lst.remove(eNow))
-    else:
-        return int(eNow)
-
+def createPrivKeys(e, phi):
+    d = multInverse(e, phi)
+    return d
 
 def multInverse(e, phi):
-    x = e%phi
+    x = e % phi
     for i in range(1,phi) :
-        if((x*i)%phi == 1) :
+        if((x * i) % phi == 1) :
             return i
-p = 23
-q = 37
-n = calcN(p,q)
+            
+def encryption(m):
+    encryptM = [(ord(c) ** e % n) for c in m]
+    return encryptM
 
-#print n
+def decryption(c):
+    decryptM = [chr(char ** d % n) for char in c]
+    return ''.join(decryptM)
+
+p = 23 # p can be changed
+q = 29 # q can be changed
+n = calcN(p,q)
 phi = calcPhi(p,q)
-##print phi
-e = int(createPubPrivKeys(phi)[0])
-d = int(createPubPrivKeys(phi)[1])
-  
-   
-    
+e = createPubKeys(phi)
+d = createPrivKeys(e, phi)
+
+message = raw_input("Please enter your desired message to be encrypted: ")
+
+#assert decryption(encryption(message)) == message
+
+print "Decrypted Message is:", decryption(encryption(message))
+     
      
        
-"""
-    for the sake of being afraid of losing the original code
-"""
-def createPubPrivKeys(phi):
-    """
-    This function will generate/return the public and private keys
-    """
-    lst = list(range(2,phi))
-    e = choose_e(phi,lst) # (e,n) public key
-    d = multInverse(e, phi)
-    #print [e,d]
-    return [e,d]
-
-def choose_e(phi, lst):
-    
-    eNow = random.choice(lst)
-    if gcd(eNow,phi) != 1:
-                choose_e(phi,lst.remove(eNow))
-    else:
-        return int(eNow)
-
-#createPubPrivKeys(521)
-
-
-def multInverse(e, phi):
-    x = e%phi
-    for i in range(1,phi) :
-        if((x*i)%phi == 1) :
-            return i
-
-#print multInverse(createPubPrivKeys(49979), 499979)
-
-createPubPrivKeys(499979)
-
-def encryption(m):
-    asciiM = int(''.join(str(ord(c)) for c in m))
-    encryptedM = asciiM**e % n
-    print encryptedM
-    return encryptedM
-    
-encryption('hi how are you')
-
-#def decryption(c, d, n):
-#    return mOrig
-
-#def main(): 
-#    p = 
-#    q = 
-#    e = 
-#    n = calcN(p,q)
-#    phi = calcPhi(p,q)
-#    d = multInverse(e, phi)
-#    m = sys.argv[1]
-#    c = encrytion(m, e, n)
-#    assert m == decryption(c, d, m)
-
-
-#if __name__ == "__main__":
-#    main()
