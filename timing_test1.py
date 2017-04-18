@@ -1,4 +1,4 @@
-import time as timer
+import time
 import sys
 
 secret_key = sys.argv[1]
@@ -18,11 +18,11 @@ def build_string(length):
 
 for i in range(length):
     time = 0
-    for j in range(200000):
+    for j in xrange(200000):
         test_string = build_string(i)
-        start_time = timer.clock()
+        start_time = time.clock()
         naive_string_equals(test_string, secret_key)
-        end_time = timer.clock()
+        end_time = time.clock()
         elapsed = end_time - start_time
         if elapsed > 0:
             time += elapsed 
