@@ -1,88 +1,152 @@
-# RSA Implementation DONE
-
 import math
+import copy
 import sys
-import random 
-from fractions import gcd
 
-def calcN(p,q):
-    return p*q
+class RSAEncryption:
+    def __init__(self, p, q, e):
+        self.p = p  # private key p
+        self.q = q  # private key q
+        self.e = e  # public key e
+        self.n = p * q  # public key N
+        self.totient = (p - 1) * (q - 1)  # Euler's totient
+        self.d = self._calculate_modular_inverse(e, self.totient)  # private key d
+        self.block_size = 2
 
-def calcPhi(p,q):
-   return (p-1)*(q-1)
+    def get_public_keys(self):
+        """Returns a tuple of the public keys e, n"""
+        return (self.e, self.n)
 
-def choose_e(phi, lst):
-    eNow = random.choice(lst)
-    while gcd(eNow,phi) != 1:
-        eNow = random.choice(lst)
-    return eNow
-        
-def createPubKeys(phi):
-    """
-    This function will generate/return public key
-    """
-    lst = list(range(3,phi))
-    e = choose_e(phi,lst) # (e,n) public key
-    return e
-    
-def createPrivKeys(e, phi):
-    """
-    This function will generate/return private key
-    """
-    d = multInverse(e, phi)
-    return d
+    def get_private_keys(self):
+        """Returns a tuple of the private keys p, q, d"""
+        return (self.p, self.q, self.d)
 
-def multInverse(e, phi):
-    x = e % phi
-    for i in range(1,phi) :
-        if((x * i) % phi == 1) :
-            return i
-            
-def encryption(m):
-    """
-    This function creates encrypted message (ciphertext)
-    """
-    #asciiM = [ord(c) for c in m]
-    asciiM2bits = [bin(ord(x))[2:].zfill(8) for x in m]
-    concatenateBits = ''.join(asciiM2bits)
-    decimalM = int(concatenateBits, 2)
-    encryptM = (decimalM**e)%n
-    #print type(encryptM)
-    return encryptM
+    def _calculate_modular_inverse(self, a, n):
+        """Calculates the inverse of a mod n"""
+        (t, new_t, r, new_r) = 0, 1, int(n), int(a)
+        while new_r != 0:
+            quotient = r / new_r
+            (t, new_t) = (new_t, t - quotient * new_t)
+            (r, new_r) = (new_r, r - quotient * new_r)
+        if t < 0:
+            t += n
+        return t
 
-def decryption(c):
-    """
-    This function decrypts the ciphertext to the original message 
-    """
-    decimalC = (c**d)%n
-    print decimalC
-    bits_C = format(decimalC, 'b')
-    print bits_C
-    bytes_C = [bits_C[i:i+2] for i in range(0, len(bits_C), 2)]
-    print bytes_C
-    #decryptM = [chr(char ** d % n) for char in c]
-    
-    #return ''.join(decryptM)
+    def _multiply_montgomery(self, a, b, n_inverse, r):
+        """Performs modular multiplication using the Montgomery method"""
+        n = self.n
 
-p = 23 # p can be changed
-q = 29 # q can be changed
-n = calcN(p,q)
-phi = calcPhi(p,q)
-e = createPubKeys(phi)
-d = createPrivKeys(e, phi)
-#print type(d)
+        t = a * b
+        m = t * n_inverse % r
+        u = (t + m * n) / r
+        if (u >= n):
+            return u - n
+        return u
 
-message = raw_input("Please enter your desired message to be encrypted: ")
-e = encryption(message)
-decryption(e)
-#decryption(encryption(message))
-#assert decryption(encryption(message)) == message
+    def _calculate_n_inverse(self):
+        """Calculates r and n-inverse used in Montgomery exponentiation,
+        returning a tuple consisting of r and n-inverse
+        """
+        n = self.n
 
-#print "Decrypted Message is:", decryption(encryption(message))
+        k = int(math.floor(math.log(int(n), 2))) + 1
+        r = int(math.pow(2, k))
+        r_inverse = self._calculate_modular_inverse(r, n)
+        result = (r * r_inverse - 1) / n
+        return (r, result)
+
+    def _convert_integer_to_bit_string(self, key):
+        bits = []
+        k = int(math.floor(math.log(key, 2))) + 1
+        for i in list(reversed(list(xrange(k)))):
+            # right shift by i and keep only the LSB
+            bits.append(key >> i & 1)
+        return bits
+
+    def _square_and_multiply(self, m, key):
+        """Exponentiates using square-and-multiply"""
+        (r, n_prime) = self._calculate_n_inverse()
+        m_bar = (m * r) % self.n
+        x_bar = 1 * r % self.n
+
+        bit_list = self._convert_integer_to_bit_string(key)
+        for bit in bit_list:
+            x_bar = self._multiply_montgomery(x_bar, x_bar, n_prime, r)
+            # perform montgomery multiplication again to remove bit
+            if bit == 1:
+                x_bar = self._multiply_montgomery(m_bar, x_bar, n_prime, r)
+        result = self._multiply_montgomery(x_bar, 1, n_prime, r)
+        return result
+
+    def _convert_string_to_ascii(self, m):
+        """Converts a string m to a list of ASCII values"""
+        return [ord(c) for c in m]
+
+    def _convert_ascii_to_string(self, l):
+        """Converts a list of integers to a string based on ASCII
+        values
+        """
+        return ''.join(map(chr, filter(lambda c: c != 0, l)))
+
+    def _convert_integers_to_blocks(self, l):
+        """Converts a list of ints l to block size n. Pads l if size is
+        insufficient.
+        """
+        block_size = self.block_size
+
+        result = []
+        int_list = copy.copy(l)
+        if len(int_list) % block_size != 0:
+            for i in xrange(block_size - len(int_list) % block_size):
+                int_list.append(0)
+        for i in xrange(0, len(int_list), block_size):
+            block = 0
+            for j in xrange(block_size):
+                # shift to correct place
+                block += int_list[i + j] << (8 * (block_size - j - 1))
+            result.append(block)
+        return result
+
+    def _convert_block_to_integers(self, blocks):
+        """Converts a list of blocks to ints"""
+        block_size = self.block_size
+
+        block_list = copy.copy(blocks)
+        result = []
+        for block in block_list:
+            inner = []
+            for i in xrange(self.block_size):
+                inner.append(block % 256)
+                block = block >> 8
+            inner.reverse()
+            result.extend(inner)
+        return result
+
+    def encrypt(self, message):
+        """Encrypts a message using the public key, and returns the
+        cyphertext
+        """
+        number_list = self._convert_string_to_ascii(message)
+        blocks = self._convert_integers_to_blocks(number_list)
+        result = [self._square_and_multiply(block, self.e) for block in blocks]
+        return result
+
+    def decrypt(self, ciphertext):
+        """ Decrypts a ciphertext using the private key, and returns the
+        original message
+        """
+        blocks = [self._square_and_multiply(block, self.d) for block in ciphertext]
+        number_list = self._convert_block_to_integers(blocks)
+        result = self._convert_ascii_to_string(number_list)
+        return result
 
 
-#encryption('hi how are you')
+if __name__ == "__main__":
+    rsa = RSAEncryption(961748941, 982451653, 31)
 
+    message = "Hello, world! This is Darren and Judy and Christina."
+    ciphertext = rsa.encrypt(message)
+    decoded_message = rsa.decrypt(ciphertext)
 
-
-
+    print("Message: " + message)
+    print("Ciphertext: " + str(ciphertext))
+    print("Decrypted text: " + decoded_message)
