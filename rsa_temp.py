@@ -1,5 +1,6 @@
 import math
 import copy
+import sys
 
 class RSAEncryption:
     def __init__(self, p, q, e):
@@ -12,13 +13,15 @@ class RSAEncryption:
         self.block_size = 2
 
     def get_public_keys(self):
+        """Returns a tuple of the public keys e, n"""
         return (self.e, self.n)
 
     def get_private_keys(self):
+        """Returns a tuple of the private keys p, q, d"""
         return (self.p, self.q, self.d)
 
     def _calculate_modular_inverse(self, a, n):
-        """Calculates the modular inverse of a mod n"""
+        """Calculates the inverse of a mod n"""
         (t, new_t, r, new_r) = 0, 1, int(n), int(a)
         while new_r != 0:
             quotient = r / new_r
@@ -29,7 +32,7 @@ class RSAEncryption:
         return t
 
     def _multiply_montgomery(self, a, b, n_inverse, r):
-        """Performs modular multiplication using the Montgomery method."""
+        """Performs modular multiplication using the Montgomery method"""
         n = self.n
 
         t = a * b
@@ -40,8 +43,8 @@ class RSAEncryption:
         return u
 
     def _calculate_n_inverse(self):
-        """Calculates r and n-inverse used in Montgomery exponentiation.
-        Returns a tuple consisting of r and n-inverse.
+        """Calculates r and n-inverse used in Montgomery exponentiation,
+        returning a tuple consisting of r and n-inverse
         """
         n = self.n
 
@@ -51,31 +54,28 @@ class RSAEncryption:
         result = (r * r_inverse - 1) / n
         return (r, result)
 
-    def _convert_integer_to_bit_string(self):
-        n = self.n
-
+    def _convert_integer_to_bit_string(self, key):
         bits = []
-        k = int(math.floor(math.log(n, 2))) + 1
+        k = int(math.floor(math.log(key, 2))) + 1
         for i in list(reversed(list(xrange(k)))):
             # right shift by i and keep only the LSB
-            bits.append(n >> i & 1)
+            bits.append(key >> i & 1)
         return bits
 
-    def _square_and_multiply(self, m):
+    def _square_and_multiply(self, m, key):
         """Exponentiates using square-and-multiply"""
-        d = self.d
-        n = self.n
-
         (r, n_prime) = self._calculate_n_inverse()
-        m_bar = (m * r) % n
-        x_bar = 1 * r % n
-        bit_list = self._convert_integer_to_bit_string()
+        m_bar = (m * r) % self.n
+        x_bar = 1 * r % self.n
+
+        bit_list = self._convert_integer_to_bit_string(key)
         for bit in bit_list:
             x_bar = self._multiply_montgomery(x_bar, x_bar, n_prime, r)
+            # perform montgomery multiplication again to remove bit
             if bit == 1:
                 x_bar = self._multiply_montgomery(m_bar, x_bar, n_prime, r)
-        x = self._multiply_montgomery(x_bar, 1, n_prime, r)
-        return x
+        result = self._multiply_montgomery(x_bar, 1, n_prime, r)
+        return result
 
     def _convert_string_to_ascii(self, m):
         """Converts a string m to a list of ASCII values"""
@@ -125,26 +125,17 @@ class RSAEncryption:
         """Encrypts a message using the public key, and returns the
         cyphertext
         """
-        e = self.e
-        n = self.n
-
         number_list = self._convert_string_to_ascii(message)
         blocks = self._convert_integers_to_blocks(number_list)
-        result = [self._square_and_multiply(block) for block in blocks]
-        print(result)
+        result = [self._square_and_multiply(block, self.e) for block in blocks]
         return result
 
     def decrypt(self, ciphertext):
         """ Decrypts a ciphertext using the private key, and returns the
         original message
         """
-        d = self.d
-        n = self.n
-
-        blocks = [self._square_and_multiply(block) for block in ciphertext]
-        #print(blocks)
+        blocks = [self._square_and_multiply(block, self.d) for block in ciphertext]
         number_list = self._convert_block_to_integers(blocks)
-        #print(number_list)
         result = self._convert_ascii_to_string(number_list)
         return result
 
@@ -152,18 +143,10 @@ class RSAEncryption:
 if __name__ == "__main__":
     rsa = RSAEncryption(961748941, 982451653, 31)
 
-    # public_keys = rsa.get_public_keys()
-    # private_keys = rsa.get_private_keys()
-    # print("p: " + str(private_keys[0]))
-    # print("q: " + str(private_keys[1]))
-    # print("n: " + str(public_keys[1]))
-    # print("e: " + str(public_keys[0]))
-    # print("d: " + str(private_keys[2]))
-
     message = "Hello, world! This is Darren and Judy and Christina."
     ciphertext = rsa.encrypt(message)
     decoded_message = rsa.decrypt(ciphertext)
 
-    # print("Message: " + message)
-    # print("Ciphertext: " + str(ciphertext))
-    # print("Decrypted: " + decoded_message)
+    print("Message: " + message)
+    print("Ciphertext: " + str(ciphertext))
+    print("Decrypted text: " + decoded_message)
