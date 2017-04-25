@@ -13,7 +13,7 @@ class RSAEncryption:
         self.block_size = 2
 
     def get_public_keys(self):
-        """Returns a tuple of the public keys e, n"""
+        """Returns a tuple of the public keys e, N"""
         return (self.e, self.n)
 
     def get_private_keys(self):
@@ -21,7 +21,7 @@ class RSAEncryption:
         return (self.p, self.q, self.d)
 
     def _calculate_modular_inverse(self, a, n):
-        """Calculates the inverse of a mod n"""
+        """Calculates the modular inverse of a mod n"""
         (t, new_t, r, new_r) = 0, 1, int(n), int(a)
         while new_r != 0:
             quotient = r / new_r
@@ -33,25 +33,21 @@ class RSAEncryption:
 
     def _multiply_montgomery(self, a, b, n_inverse, r):
         """Performs modular multiplication using the Montgomery method"""
-        n = self.n
-
         t = a * b
         m = t * n_inverse % r
-        u = (t + m * n) / r
-        if (u >= n):
-            return u - n
+        u = (t + m * self.n) / r
+        if (u >= self.n):
+            return u - self.n
         return u
 
     def _calculate_n_inverse(self):
         """Calculates r and n-inverse used in Montgomery exponentiation,
         returning a tuple consisting of r and n-inverse
         """
-        n = self.n
-
-        k = int(math.floor(math.log(int(n), 2))) + 1
+        k = int(math.floor(math.log(int(self.n), 2))) + 1
         r = int(math.pow(2, k))
-        r_inverse = self._calculate_modular_inverse(r, n)
-        result = (r * r_inverse - 1) / n
+        r_inverse = self._calculate_modular_inverse(r, self.n)
+        result = (r * r_inverse - 1) / self.n
         return (r, result)
 
     def _convert_integer_to_bit_string(self, key):
@@ -82,7 +78,7 @@ class RSAEncryption:
         return [ord(c) for c in m]
 
     def _convert_ascii_to_string(self, l):
-        """Converts a list of integers to a string based on ASCII
+        """Converts a list of integers l to a string based on ASCII
         values
         """
         return ''.join(map(chr, filter(lambda c: c != 0, l)))
@@ -106,8 +102,10 @@ class RSAEncryption:
             result.append(block)
         return result
 
-    def _convert_block_to_integers(self, blocks):
-        """Converts a list of blocks to ints"""
+    def _convert_blocks_to_integers(self, blocks):
+        """Converts a list of blocks to ints using the set
+        block_size
+        """
         block_size = self.block_size
 
         block_list = copy.copy(blocks)
@@ -135,18 +133,6 @@ class RSAEncryption:
         original message
         """
         blocks = [self._square_and_multiply(block, self.d) for block in ciphertext]
-        number_list = self._convert_block_to_integers(blocks)
+        number_list = self._convert_blocks_to_integers(blocks)
         result = self._convert_ascii_to_string(number_list)
         return result
-
-
-if __name__ == "__main__":
-    rsa = RSAEncryption(961748941, 982451653, 31)
-
-    message = "Hello, world! This is Darren and Judy and Christina."
-    ciphertext = rsa.encrypt(message)
-    decoded_message = rsa.decrypt(ciphertext)
-
-    print("Message: " + message)
-    print("Ciphertext: " + str(ciphertext))
-    print("Decrypted text: " + decoded_message)
