@@ -2,7 +2,7 @@ import math
 import copy
 import sys
 
-from RSAEncryption import *
+from encryption import *
 
 if __name__ == "__main__":
     rsa = RSAEncryption(961748941, 982451653, 31)
