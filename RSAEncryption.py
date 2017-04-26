@@ -3,6 +3,7 @@ import copy
 import sys
 
 class RSAEncryption:
+
     def __init__(self, p, q, e):
         self.p = p  # private key p
         self.q = q  # private key q
@@ -22,12 +23,12 @@ class RSAEncryption:
 
     def _calculate_modular_inverse(self, a, n):
         """Calculates the modular inverse of a mod n"""
-        (t, new_t, r, new_r) = 0, 1, int(n), int(a)
-        while new_r != 0:
-            quotient = r / new_r
-            (t, new_t) = (new_t, t - quotient * new_t)
-            (r, new_r) = (new_r, r - quotient * new_r)
-        if t < 0:
+        (t, curr_t, r, curr_r) = 0, 1, int(n), int(a)
+        while curr_r != 0:
+            result = r / curr_r
+            (t, curr_t) = (curr_t, t - result * curr_t)
+            (r, curr_r) = (curr_r, r - result * curr_r)
+        if (t < 0):
             t += n
         return t
 
@@ -50,13 +51,13 @@ class RSAEncryption:
         result = (r * r_inverse - 1) / self.n
         return (r, result)
 
-    def _convert_integer_to_bit_string(self, key):
-        bits = []
+    def _convert_integer_to_bits(self, key):
+        bit_string = []
         k = int(math.floor(math.log(key, 2))) + 1
         for i in list(reversed(list(xrange(k)))):
             # right shift by i and keep only the LSB
-            bits.append(key >> i & 1)
-        return bits
+            bit_string.append(key >> i & 1)
+        return bit_string
 
     def _square_and_multiply(self, m, key):
         """Exponentiates using square-and-multiply"""
@@ -64,10 +65,11 @@ class RSAEncryption:
         m_bar = (m * r) % self.n
         x_bar = 1 * r % self.n
 
-        bit_list = self._convert_integer_to_bit_string(key)
+        bit_list = self._convert_integer_to_bits(key)
         for bit in bit_list:
             x_bar = self._multiply_montgomery(x_bar, x_bar, n_prime, r)
-            # perform montgomery multiplication again to remove bit
+            # perform Montgomery multiplication again to remove bit
+            # exploited by a timing attack
             if bit == 1:
                 x_bar = self._multiply_montgomery(m_bar, x_bar, n_prime, r)
         result = self._multiply_montgomery(x_bar, 1, n_prime, r)
@@ -94,6 +96,7 @@ class RSAEncryption:
         if len(int_list) % block_size != 0:
             for i in xrange(block_size - len(int_list) % block_size):
                 int_list.append(0)
+
         for i in xrange(0, len(int_list), block_size):
             block = 0
             for j in xrange(block_size):
@@ -111,17 +114,17 @@ class RSAEncryption:
         block_list = copy.copy(blocks)
         result = []
         for block in block_list:
-            inner = []
+            temp = []  # blocks to add on to final int list
             for i in xrange(self.block_size):
-                inner.append(block % 256)
+                temp.append(block % 256)
                 block = block >> 8
-            inner.reverse()
-            result.extend(inner)
+            temp.reverse()
+            result.extend(temp)
         return result
 
     def encrypt(self, message):
         """Encrypts a message using the public key, and returns the
-        cyphertext
+        ciphertext
         """
         number_list = self._convert_string_to_ascii(message)
         blocks = self._convert_integers_to_blocks(number_list)
