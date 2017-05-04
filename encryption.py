@@ -33,7 +33,9 @@ class RSAEncryption:
         return t
 
     def _multiply_montgomery(self, a, b, n_inverse, r):
-        """Performs modular multiplication using the Montgomery method"""
+        """Performs modular multiplication using the Montgomery method
+        Computes a * b mod n
+        """
         t = a * b
         m = t * n_inverse % r
         u = (t + m * self.n) / r
@@ -72,8 +74,8 @@ class RSAEncryption:
             # exploited by a timing attack
             if bit == 1:
                 x_bar = self._multiply_montgomery(m_bar, x_bar, n_prime, r)
-        result = self._multiply_montgomery(x_bar, 1, n_prime, r)
-        return result
+        x_bar = self._multiply_montgomery(x_bar, 1, n_prime, r)
+        return x_bar
 
     def _convert_string_to_ascii(self, m):
         """Converts a string m to a list of ASCII values"""
