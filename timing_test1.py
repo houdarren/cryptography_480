@@ -17,16 +17,15 @@ def build_string(length):
     return "x" * length
 
 for i in range(length):
-    time = 0
+    total_time = 0
     for j in xrange(200000):
         test_string = build_string(i)
-        start_time = time.clock()
+        start_time = time.clock() * 1000
         naive_string_equals(test_string, secret_key)
-        end_time = time.clock()
-        elapsed = end_time - start_time
-        if elapsed > 0:
-            time += elapsed 
-    print(str(i) + ": " + str(time))
+        end_time = time.clock() * 1000
+        elapsed_time = int(end_time - start_time)  # time in milliseconds
+        total_time += elapsed_time
+    print(str(i) + ": " + str(total_time))
 
 
 
