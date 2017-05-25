@@ -9,6 +9,8 @@ from encryption import *
 # time how long attack takes
 TIME_ATTACKS = True
 
+ATTACKS_PER_BIT = 10000
+
 def attack_decrypt(rsa, oracle):
     start_time = time.clock() * 1000
     rsa.decrypt([oracle])
@@ -33,12 +35,12 @@ def attack_square(rsa, attacks):
     if TIME_ATTACKS:
         attack_time = time.clock() * 1000
 
+    # randomly sample messages between 1 and n
+    attack_messages = random.sample(xrange(1, public_n), attacks)
+
     for bit in xrange(len(bitwise_n)):
         oracle1_timings = 0
         oracle2_timings = 0
-
-        # randomly sample messages between 1 and n
-        attack_messages = random.sample(xrange(1, public_n), attacks)
 
         for m in attack_messages:
             m_temp = m ** (bit * 2)
@@ -97,9 +99,7 @@ def _calculate_modular_inverse(a, n):
 
 
 if __name__ == "__main__":
-    attacks_per_bit = 10000
-
     rsa = RSAEncryption(961748941, 982451653, 31)
 
-    attack_square_timings = attack_square(rsa, attacks_per_bit)
+    attack_square_timings = attack_square(rsa, ATTACKS_PER_BIT)
     # print(attack_square_timings)
