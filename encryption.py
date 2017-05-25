@@ -15,7 +15,7 @@ class RSAEncryption:
 
     def get_public_keys(self):
         """Returns a tuple of the public keys e, N"""
-        return (self.e, self.n)
+        return (self.n, self.e)
 
     def get_private_keys(self):
         """Returns a tuple of the private keys p, q, d"""
@@ -39,12 +39,12 @@ class RSAEncryption:
         t = a * b
         m = t * n_inverse % r
         u = (t + m * self.n) / r
-        if (u >= self.n):
-            return u - self.n
+        while (u >= self.n):
+            u = u - self.n
         return u
 
     def _calculate_n_inverse(self):
-        """Calculates r and n-inverse used in Montgomery exponentiation,
+        """Calculates r and n-inverse used in Montgomery multiplication,
         returning a tuple consisting of r and n-inverse
         """
         k = int(math.floor(math.log(int(self.n), 2))) + 1
@@ -81,30 +81,34 @@ class RSAEncryption:
         """Converts a string m to a list of ASCII values"""
         return [ord(c) for c in m]
 
-    def _convert_ascii_to_string(self, l):
-        """Converts a list of integers l to a string based on ASCII
+    def _convert_ascii_to_string(self, integers):
+        """Converts a list of integers to a string based on ASCII
         values
         """
-        return ''.join(map(chr, filter(lambda c: c != 0, l)))
+        return ''.join(map(chr, filter(lambda c: c != 0, integers)))
 
-    def _convert_integers_to_blocks(self, l):
-        """Converts a list of ints l to block size n. Pads l if size is
+    def _convert_integers_to_blocks(self, integers):
+        """Converts a list of ints to block size n. Pads the list if size is
         insufficient.
         """
         block_size = self.block_size
 
         result = []
-        int_list = copy.copy(l)
+        int_list = copy.copy(integers)
+
+        # check if int_list needs padding to reach a multiple of block_size
         if len(int_list) % block_size != 0:
             for i in xrange(block_size - len(int_list) % block_size):
                 int_list.append(0)
 
+        # convert to blocks
         for i in xrange(0, len(int_list), block_size):
             block = 0
             for j in xrange(block_size):
                 # shift to correct place
                 block += int_list[i + j] << (8 * (block_size - j - 1))
             result.append(block)
+
         return result
 
     def _convert_blocks_to_integers(self, blocks):
