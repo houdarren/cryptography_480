@@ -38,25 +38,16 @@ def attack_square(rsa, attacks):
     # randomly sample messages between 1 and n
     attack_messages = random.sample(xrange(1, public_n), attacks)
 
+
+    sqrt_n = math.sqrt(public_n)
+
+    private_key_guess = 0
+
+    # loop through each bit
     for bit in xrange(len(bitwise_n)):
-        oracle1_timings = 0
-        oracle2_timings = 0
+        (m_with_reduction, m_without_reduction) = split_messages(attack_messages, sqrt_n)
 
-        for m in attack_messages:
-            m_temp = m ** (bit * 2)
 
-            oracle1 = (m_temp * m) ** 2
-            oracle2 = (m_temp) ** 2
-
-            oracle1_time = attack_decrypt(rsa, oracle1)
-            oracle2_time = attack_decrypt(rsa, oracle2)
-
-            oracle1_timings += oracle1_time
-            oracle2_timings += oracle2_time
-
-        timings[bit] = (oracle1_timings, oracle2_timings)
-
-        print(str(bit) + "," + str(timings[bit]))
 
     if TIME_ATTACKS:
         attack_time = time.clock() * 1000 - attack_time
@@ -65,41 +56,26 @@ def attack_square(rsa, attacks):
     return timings
 
 
-def _multiply_montgomery(a, b, n_inverse, r, n):
-    """Performs modular multiplication using the Montgomery method
-    Computes a * b mod n
+def split_messages(messages, cutoff):
     """
-    t = a * b
-    m = t * n_inverse % r
-    u = (t + m * n) / r
-    if (u >= n):
-        return u - n
-    return u
 
-def _calculate_n_inverse(n):
-    """Calculates r and n-inverse used in Montgomery multiplication,
-    returning a tuple consisting of r and n-inverse
     """
-    k = int(math.floor(math.log(int(n), 2))) + 1
-    r = int(math.pow(2, k))
-    r_inverse = _calculate_modular_inverse(r, n)
-    result = (r * r_inverse - 1) / n
-    return (r, result)
+    messages_with_reduction = []
+    messages_without_reduction = []
 
-def _calculate_modular_inverse(a, n):
-    """Calculates the modular inverse of a mod n"""
-    (t, curr_t, r, curr_r) = 0, 1, int(n), int(a)
-    while curr_r != 0:
-        result = r / curr_r
-        (t, curr_t) = (curr_t, t - result * curr_t)
-        (r, curr_r) = (curr_r, r - result * curr_r)
-    if (t < 0):
-        t += n
-    return t
+    for m in messages:
+        if m < cutoff:
+            messages_without_reduction.append(m)
+        else:
+            messages_with_reduction.append(m)
+
+    return (messages_with_reduction, messages_without_reduction)
 
 
 if __name__ == "__main__":
     rsa = RSAEncryption(961748941, 982451653, 31)
 
+
+    print(rsa.get_private_keys())
     attack_square_timings = attack_square(rsa, ATTACKS_PER_BIT)
     # print(attack_square_timings)
