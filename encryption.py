@@ -34,7 +34,7 @@ class RSAEncryption:
 
     def _multiply_montgomery(self, a, b, n_inverse, r):
         """Performs modular multiplication using the Montgomery method
-        Computes a * b mod n
+        Computes a * b * r-inverse mod n
         """
         t = a * b
         m = t * n_inverse % r
@@ -65,7 +65,7 @@ class RSAEncryption:
         """Exponentiates using square-and-multiply"""
         (r, n_prime) = self._calculate_n_inverse()
         m_bar = (m * r) % self.n
-        x_bar = 1 * r % self.n
+        x_bar = r % self.n
 
         bit_list = self._convert_integer_to_bits(key)
         for bit in bit_list:
