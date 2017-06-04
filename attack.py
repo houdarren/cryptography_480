@@ -9,7 +9,7 @@ from encryption import *
 # time how long attack takes
 TIME_ATTACKS = True
 
-ATTACKS_PER_BIT = 10000
+ATTACKS_PER_BIT = 8000
 
 
 def attack_decrypt(rsa, message):
@@ -54,7 +54,6 @@ def attack_square(rsa, attacks, bit_sequence):
 
     # randomly choose messages between 1 and n
     attack_messages = random.sample(xrange(1, public_n), attacks)
-    attack_messages.append(1)
 
     # loop through each bit
     for i in xrange(1, len(bitwise_n)):
@@ -86,7 +85,7 @@ def split_messages(messages, bit_sequence_guess, cutoff, public_n):
     n_0 = []
 
     for m in messages:
-        m_temp = m ** (bit_sequence_guess) ** 2 % public_n
+        m_temp = m ** (bit_sequence_guess) % public_n
 
         # first oracle
         if over_cutoff(((m_temp * m) ** 2), cutoff):
@@ -125,6 +124,16 @@ def guess_bit(timings):
 
 def to_bit_string(n):
     return "{0:b}".format(n)
+
+
+def build_reduction_messages(attacks, bit_sequence_guess, cutoff, public_n):
+    """Returns a list of messages needing an extra reduction step"""
+    messages = random.sample(xrange(public_n, public_n + math.sqrt(public_n) - 1), attacks)
+    m = []
+    for i in messages:
+        m_temp =
+        m.append()
+
 
 if __name__ == "__main__":
     rsa = RSAEncryption(961748941, 982451653, 31)
