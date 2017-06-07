@@ -53,11 +53,12 @@ def attack_square(rsa, attacks, bit_sequence):
         attack_time = time.clock() * 1000
 
     # randomly choose messages between 1 and n
-    attack_messages = random.sample(xrange(1, public_n), attacks)
-
+    attack_messages = random.sample(xrange(1, public_n), attacks / 2)
     # loop through each bit
     for i in xrange(1, len(bitwise_n)):
-        print("sqrt n : " + str(math.sqrt(public_n)))
+        reduction_messages = build_reduction_messages(attacks / 2, bit_sequence, public_n)
+        attack_messages = attack_messages + reduction_messages
+
         message_sets = split_messages(attack_messages, bit_sequence, math.sqrt(public_n), public_n)
 
         timings = time_messages(rsa, message_sets)
@@ -99,11 +100,16 @@ def split_messages(messages, bit_sequence_guess, cutoff, public_n):
         else:
             n_0.append(m_temp)
 
-    return [r_1, n_1, r_0, n_0]
+    oracles = [r_1, n_1, r_0, n_0]
+
+    for oracle in oracles:
+        if len(oracle) > 10000:
+            oracle = oracle[:10000]
+
+    return oracles
 
 
 def over_cutoff(n, cutoff):
-    # print("n: " + str(n))
     return n >= cutoff
 
 
@@ -112,7 +118,6 @@ def build_bit_sequence(bit_guess, index, sequence):
 
 
 def guess_bit(timings):
-    print(timings)
     oracle1_difference = timings[0] - timings[1]
     oracle2_difference = timings[2] - timings[3]
 
@@ -126,13 +131,15 @@ def to_bit_string(n):
     return "{0:b}".format(n)
 
 
-def build_reduction_messages(attacks, bit_sequence_guess, cutoff, public_n):
+def build_reduction_messages(attacks, bit_sequence_guess, public_n):
     """Returns a list of messages needing an extra reduction step"""
-    messages = random.sample(xrange(public_n, public_n + math.sqrt(public_n) - 1), attacks)
+    attacks = min(attacks, 2 ** bit_sequence_guess - 1)
+    messages = random.sample(xrange(1, 2 ** (bit_sequence_guess) % public_n), attacks)
     m = []
-    for i in messages:
-        m_temp =
-        m.append()
+    for message in messages:
+        m_temp = message ** (bit_sequence_guess) % public_n
+        m.append(m_temp)
+    return m
 
 
 if __name__ == "__main__":
