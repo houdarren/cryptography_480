@@ -6,10 +6,13 @@ import sys
 
 from encryption import *
 
-# time how long attack takes
-TIME_ATTACKS = True
+# time how long total attack takes
+TIME_ATTACKS = False
 
 ATTACKS_PER_BIT = 8000
+
+PRIVATE_D = 0
+
 
 
 def attack_decrypt(rsa, message):
@@ -24,12 +27,19 @@ def time_messages(rsa, message_sets):
     timings = []
 
     for message_set in message_sets:
+        if len(message_set) > ATTACKS_PER_BIT:
+            message_set = message_set[:ATTACKS_PER_BIT]
+
+        # scale up size of message set if needed
+        if len(message_set) < ATTACKS_PER_BIT / 3:
+            scale = ATTACKS_PER_BIT / len(message_set)
+            message_set = [message_set[i / scale] for i in range(len(message_set) * scale)]
 
         set_timing = 0
         for message in message_set:
             set_timing += attack_decrypt(rsa, message)
 
-        print("length " + str(len(message_set)))
+        # check message set not empty
         if len(message_set) <= 0:
             print("message_set is empty")
             timings.append(0)
@@ -44,6 +54,9 @@ def attack_square(rsa, attacks, bit_sequence):
     """Attacks the square portion of the square-and-multiply
     algorithm
     """
+    bits_incorrect = 0
+    bits_attacked = 0
+
     (public_n, public_e) = rsa.get_public_keys()
     bitwise_n = to_bit_string(public_n)
 
@@ -65,7 +78,17 @@ def attack_square(rsa, attacks, bit_sequence):
 
         bit_guess = guess_bit(timings)
 
+        if not verify_bit(bit_guess, i):
+            bit_guess = 1 - bit_guess
+            bits_incorrect += 1
+            print("GUESS WRONG")
+        else:
+            print("GUESS RIGHT")
+
         bit_sequence = build_bit_sequence(bit_guess, i, bit_sequence)
+
+        bits_attacked += 1
+
         print(to_bit_string(bit_sequence))
 
     # time length of attack
@@ -103,8 +126,8 @@ def split_messages(messages, bit_sequence_guess, cutoff, public_n):
     oracles = [r_1, n_1, r_0, n_0]
 
     for oracle in oracles:
-        if len(oracle) > 10000:
-            oracle = oracle[:10000]
+        if len(oracle) > ATTACKS_PER_BIT:
+            oracle = oracle[:ATTACKS_PER_BIT]
 
     return oracles
 
@@ -117,7 +140,13 @@ def build_bit_sequence(bit_guess, index, sequence):
     return 2 ** index * bit_guess + sequence
 
 
+def verify_bit(bit_guess, index):
+    d = to_bit_string(PRIVATE_D)
+    return d[len(d) - 1 - index] == str(bit_guess)
+
+
 def guess_bit(timings):
+    print(timings)
     oracle1_difference = timings[0] - timings[1]
     oracle2_difference = timings[2] - timings[3]
 
@@ -143,8 +172,10 @@ def build_reduction_messages(attacks, bit_sequence_guess, public_n):
 
 
 if __name__ == "__main__":
-    rsa = RSAEncryption(961748941, 982451653, 31)
+    rsa = RSAEncryption(97007, 98179, 31)
     (p, q, d) = rsa.get_private_keys()
+
+    PRIVATE_D = d
     print(to_bit_string(d))
 
     # private key guess, with first bit given
