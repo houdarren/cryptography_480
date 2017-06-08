@@ -81,15 +81,12 @@ def attack_square(rsa, attacks, bit_sequence):
         if not verify_bit(bit_guess, i):
             bit_guess = 1 - bit_guess
             bits_incorrect += 1
-            print("GUESS WRONG")
-        else:
-            print("GUESS RIGHT")
 
         bit_sequence = build_bit_sequence(bit_guess, i, bit_sequence)
 
         bits_attacked += 1
 
-        print(to_bit_string(bit_sequence))
+        print("Private key so far, without leading 0s: " + to_bit_string(bit_sequence))
 
     # time length of attack
     if TIME_ATTACKS:
@@ -100,9 +97,7 @@ def attack_square(rsa, attacks, bit_sequence):
 
 
 def split_messages(messages, bit_sequence_guess, cutoff, public_n):
-    """
-
-    """
+    """Split messages into sets depending on whether they require any reduction."""
     r_1 = []
     n_1 = []
     r_0 = []
@@ -173,14 +168,14 @@ def build_reduction_messages(attacks, bit_sequence_guess, public_n):
 
 if __name__ == "__main__":
     rsa = RSAEncryption(97007, 98179, 31)
+    # rsa = RSAEncryption(961748941, 982451653, 31)
+
     (p, q, d) = rsa.get_private_keys()
 
     PRIVATE_D = d
-    print(to_bit_string(d))
+    print("Private key d: " + to_bit_string(d))
 
     # private key guess, with first bit given
     bit_sequence = 1
 
-    print(rsa.get_private_keys())
     attack_square_timings = attack_square(rsa, ATTACKS_PER_BIT, bit_sequence)
-    # print(attack_square_timings)
